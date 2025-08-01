@@ -135,8 +135,9 @@ class CombinedCBFTrainer:
         
         
         loss_grad = self.compute_gradient_loss(observations, actions, safe_mask)##safe mask means next state is safe 
+        avg_random_cbf = 0.0  #i added this
         if (self.w_CQL>0):
-            loss_cql, logsumexp_h=self.compute_CQL_loss(observations,next_observations,actions,safe_mask)
+            loss_cql, logsumexp_h, avg_random_cbf=self.compute_CQL_loss(observations,next_observations,actions,safe_mask)  #i added this - added avg_random_cbf
             wandb.log({"logsumexp_h": logsumexp_h.mean().item() / self.temp})
         else:
             loss_cql=torch.tensor(0.0)
@@ -171,9 +172,9 @@ class CombinedCBFTrainer:
         unsafe_acc = ((B < 0) * unsafe_mask).sum() / (num_unsafe_elements + 1e-8)
     
         if self.train_dynamics:
-            return loss_safe.item(), loss_unsafe.item(), loss_grad.item(),loss_cql.item(), dynamics_loss.item(), avg_safe_B.item(), avg_unsafe_B.item(), safe_acc.item(), unsafe_acc.item()
+            return loss_safe.item(), loss_unsafe.item(), loss_grad.item(),loss_cql.item(), dynamics_loss.item(), avg_safe_B.item(), avg_unsafe_B.item(), safe_acc.item(), unsafe_acc.item(), avg_random_cbf  #i added this - added avg_random_cbf to return
         else: 
-            return loss_safe.item(), loss_unsafe.item(), loss_grad.item(),loss_cql.item(), avg_safe_B.item(), avg_unsafe_B.item(), safe_acc.item(), unsafe_acc.item()
+            return loss_safe.item(), loss_unsafe.item(), loss_grad.item(),loss_cql.item(), avg_safe_B.item(), avg_unsafe_B.item(), safe_acc.item(), unsafe_acc.item(), avg_random_cbf  #i added this - added avg_random_cbf to return
 
  
     def compute_next_states(self, observation, action):
@@ -198,9 +199,10 @@ class CombinedCBFTrainer:
             random_next_h = self.model.forward_cbf(random_next_states)
             all_random_next_h.append(random_next_h.squeeze())
             
-        
+        avg_random_cbf = 0.0  #i added this
         if all_random_next_h:
             stacked_h_values = torch.stack(all_random_next_h, dim=1)
+            avg_random_cbf = torch.mean(stacked_h_values).item()  #i added this
             combined_h_values = torch.cat([stacked_h_values, next_observation_h.squeeze().unsqueeze(1)], dim=1)
             logsumexp_h = self.temp * torch.logsumexp(combined_h_values/self.temp, dim=1)
            
@@ -212,7 +214,7 @@ class CombinedCBFTrainer:
             else:
                 cql_actions_term = logsumexp_h - next_observation_h.squeeze().detach()
             loss_cql_actions = self.w_CQL * torch.mean(cql_actions_term)
-            return loss_cql_actions,logsumexp_h
+            return loss_cql_actions,logsumexp_h, avg_random_cbf  #i added this - added avg_random_cbf to return
 
         
     def compute_gradient_loss(self, observations, actions, safe_mask):
@@ -658,3 +660,5 @@ And/or make the logsumexp_h term smaller (which means making the CBF values of r
         loss_cql_actions = self.w_CQL * torch.mean(cql_actions_term)
         return loss_cql_actions
     """
+    
+#python examples/research/check/trainer.py --task OfflineSwimmerVelocityGymnasium-v1  --cql 1 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --w_grad 2 --train_steps 15000
