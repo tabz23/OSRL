@@ -1,0 +1,97 @@
+wandb_version: 1
+
+learning_rate:
+  desc: null
+  value: 1.0e-05
+train_steps:
+  desc: null
+  value: 14000
+eps_safe:
+  desc: null
+  value: 0.08
+eps_unsafe:
+  desc: null
+  value: 0.15
+eps_grad:
+  desc: null
+  value: 0.02
+w_safe:
+  desc: null
+  value: 1
+w_unsafe:
+  desc: null
+  value: 1.2
+w_grad:
+  desc: null
+  value: 2
+w_CQL:
+  desc: null
+  value: 1.0
+dt:
+  desc: null
+  value: 0.1
+cbf_hidden_dim:
+  desc: null
+  value: 128
+dynamics_hidden_dim:
+  desc: null
+  value: 128
+cbf_num_layers:
+  desc: null
+  value: 4
+dynamics_num_layers:
+  desc: null
+  value: 4
+batch_size:
+  desc: null
+  value: 256
+seed:
+  desc: null
+  value: 7
+train_dynamics:
+  desc: null
+  value: true
+dynamics_lr:
+  desc: null
+  value: 0.0001
+task:
+  desc: null
+  value: OfflineHopperVelocityGymnasium-v1
+lambda_lip:
+  desc: null
+  value: 1
+num_action_samples:
+  desc: null
+  value: 10
+temp:
+  desc: null
+  value: 0.7
+detach:
+  desc: null
+  value: false
+_wandb:
+  desc: null
+  value:
+    python_version: 3.9.21
+    cli_version: 0.14.2
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1741769617.978942
+    t:
+      1:
+      - 1
+      - 55
+      2:
+      - 1
+      - 55
+      3:
+      - 2
+      - 13
+      - 16
+      - 23
+      4: 3.9.21
+      5: 0.14.2
+      8:
+      - 4
+      - 5

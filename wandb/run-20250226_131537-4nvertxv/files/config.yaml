@@ -1,0 +1,84 @@
+wandb_version: 1
+
+learning_rate:
+  desc: null
+  value: 1.0e-06
+train_steps:
+  desc: null
+  value: 10000
+eps_safe:
+  desc: null
+  value: 0.1
+eps_unsafe:
+  desc: null
+  value: 0.1
+eps_grad:
+  desc: null
+  value: 0.0
+w_safe:
+  desc: null
+  value: 1
+w_unsafe:
+  desc: null
+  value: 1.2
+w_grad:
+  desc: null
+  value: 3
+dt:
+  desc: null
+  value: 0.1
+cbf_hidden_dim:
+  desc: null
+  value: 128
+dynamics_hidden_dim:
+  desc: null
+  value: 256
+cbf_num_layers:
+  desc: null
+  value: 4
+dynamics_num_layers:
+  desc: null
+  value: 4
+batch_size:
+  desc: null
+  value: 128
+seed:
+  desc: null
+  value: 7
+train_dynamics:
+  desc: null
+  value: true
+dynamics_lr:
+  desc: null
+  value: 5.0e-05
+task:
+  desc: null
+  value: OfflineSwimmerVelocityGymnasium-v1
+w_lip:
+  desc: null
+  value: 1
+_wandb:
+  desc: null
+  value:
+    python_version: 3.9.21
+    cli_version: 0.14.2
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1740597337.85359
+    t:
+      1:
+      - 1
+      - 55
+      2:
+      - 1
+      - 55
+      3:
+      - 13
+      - 16
+      - 23
+      4: 3.9.21
+      5: 0.14.2
+      8:
+      - 4
+      - 5

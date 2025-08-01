@@ -12,6 +12,7 @@ from osrl.common.net import (VAE, EnsembleDoubleQCritic, LagrangianPIDController
                              MLPGaussianPerturbationActor)
 
 
+
 class BCQL(nn.Module):
     """
         Batch-Constrained deep Q-learning with PID Lagrangian (BCQL)
@@ -261,6 +262,7 @@ class BCQLTrainer:
 
     def __init__(
             self,
+            
             model: BCQL,
             env: gym.Env,
             logger: WandbLogger = DummyLogger(),
@@ -279,6 +281,8 @@ class BCQLTrainer:
         self.cost_scale = cost_scale
         self.device = device
         self.model.setup_optimizers(actor_lr, critic_lr, vae_lr)
+        print("This is the modified BCQL file!")
+
 
     def train_one_step(self, observations, next_observations, actions, rewards, costs,
                        done):
@@ -304,8 +308,11 @@ class BCQLTrainer:
         self.logger.store(**stats_critic)
         self.logger.store(**stats_cost_critic)
         self.logger.store(**stats_actor)
+        print("This is the modified BCQL file!")
+
 
     def evaluate(self, eval_episodes):
+        print()
         """
         Evaluates the performance of the model on a number of episodes.
         """
@@ -316,9 +323,13 @@ class BCQLTrainer:
             episode_rets.append(epi_ret)
             episode_lens.append(epi_len)
             episode_costs.append(epi_cost)
+        
+            
         self.model.train()
+        
         return np.mean(episode_rets) / self.reward_scale, np.mean(
             episode_costs) / self.cost_scale, np.mean(episode_lens)
+        
 
     @torch.no_grad()
     def rollout(self):
@@ -328,6 +339,7 @@ class BCQLTrainer:
         obs, info = self.env.reset()
         episode_ret, episode_cost, episode_len = 0.0, 0.0, 0
         for _ in range(self.model.episode_len):
+            
             act, _ = self.model.act(obs)
             obs_next, reward, terminated, truncated, info = self.env.step(act)
             cost = info["cost"] * self.cost_scale
@@ -337,4 +349,9 @@ class BCQLTrainer:
             episode_cost += cost
             if terminated or truncated:
                 break
+            
+            print(self.env.metadata.get("render_modes", []))
+
+            self.env.render()#ADDED THIS ADDED THIS ADDED THIS ADDED THIS ADDED THIS ADDED THIS 
         return episode_ret, episode_len, episode_cost
+

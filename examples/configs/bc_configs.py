@@ -29,7 +29,7 @@ class BCTrainConfig:
     actor_lr: float = 0.001
     cost_limit: int = 10
     episode_len: int = 300
-    batch_size: int = 512
+    # batch_size: int = 512
     update_steps: int = 100_000
     num_workers: int = 8
     bc_mode: str = "all"  # "all", "safe", "risky", "frontier", "boundary", "multi-task"
@@ -39,6 +39,35 @@ class BCTrainConfig:
     # evaluation params
     eval_episodes: int = 10
     eval_every: int = 2500
+    
+    ###below are stuff i added
+    ###below are stuff i added
+    ###below are stuff i added
+    ###below are stuff i added
+    num_action: int = 0
+    state_dim: int = 0
+    cbf_hidden_dim: int = 128
+    dynamics_hidden_dim: int = 128
+    cbf_num_layers: int = 4
+    dynamics_num_layers: int = 4
+    batch_size: int = 256
+    cql: float = 0.00
+    temp: float = 0.7
+    num_action_samples_cql: int = 10
+    num_action_samples_idbf: int = 5##it was 5 if this entry is not present in wandb configs
+    detach: bool = False
+    
+    ##added new
+    eps_safe: float = 0.08
+    eps_unsafe: float = 0.15
+    eps_grad: float = 0.02
+    w_safe: float = 1.0
+    w_unsafe: float = 1.2
+    w_grad: float = 1.0  # you can change to 2 for swimmer and 1 for hopper
+    lambda_lip: float = 1.0
+    train_steps: int = 15000 #default for swimmer
+    
+
 
 
 @dataclass

@@ -110,10 +110,10 @@ class MLPGaussianActor(nn.Module):
         super().__init__()
         self.device = device
         self.action_low = torch.nn.Parameter(torch.tensor(action_low,
-                                                          device=device)[None, ...],
+                                                          device=device,dtype=torch.float32)[None, ...],
                                              requires_grad=False)  # (1, act_dim)
         self.action_high = torch.nn.Parameter(torch.tensor(action_high,
-                                                           device=device)[None, ...],
+                                                           device=device,dtype=torch.float32)[None, ...],
                                               requires_grad=False)  # (1, act_dim)
         log_std = -0.5 * np.ones(act_dim, dtype=np.float32)
         self.log_std = torch.nn.Parameter(torch.as_tensor(log_std))

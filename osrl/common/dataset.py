@@ -6,10 +6,10 @@ from typing import Any, DefaultDict, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-try:
-    import oapackage
-except ImportError:
-    print("OApackage is not installed, can not use CDT.")
+# try:# I REMOVED THIS  I REMOVED THIS  I REMOVED THIS  
+#     import oapackage
+# except ImportError:
+#     print("OApackage is not installed, can not use CDT.")
 from scipy.optimize import minimize
 from torch.nn import functional as F  # noqa
 from torch.utils.data import IterableDataset

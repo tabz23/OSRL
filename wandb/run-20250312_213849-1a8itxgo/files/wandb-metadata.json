@@ -1,0 +1,56 @@
+{
+  "os": "macOS-14.6.1-arm64-arm-64bit",
+  "python": "CPython 3.9.21",
+  "startedAt": "2025-03-13T02:38:49.894889Z",
+  "args": [
+    "--use_cql_actions",
+    "False",
+    "--cql_actions_weight",
+    "0",
+    "--temp",
+    "1",
+    "--detach",
+    "True",
+    "--num_action_samples",
+    "10",
+    "--step_count",
+    "25000"
+  ],
+  "program": "/Users/i.k.tabbara/Documents/python directory/simulator_custom_learn_CBF_CCBF/scripts/Train_ccbf_withlogging.py",
+  "git": {
+    "remote": "https://github.com/liuzuxin/OSRL.git",
+    "commit": "03a4586463690566ec8d7830ca4027b46d4ad02f"
+  },
+  "email": "i.k.tabbara@wustl.edu",
+  "root": "/Users/i.k.tabbara/Documents/python directory/OSRL",
+  "host": "1J000AL-FYYVJW7",
+  "executable": "/Users/i.k.tabbara/miniconda3/envs/cs285/bin/python",
+  "cpu_count": 12,
+  "cpu_count_logical": 12,
+  "disk": {
+    "/": {
+      "total": "494384795648",
+      "used": "437316886528"
+    },
+    "/System/Volumes/Data": {
+      "total": "494384795648",
+      "used": "437316886528"
+    }
+  },
+  "memory": {
+    "total": "19327352832"
+  },
+  "cpu": {
+    "count": 12,
+    "countLogical": 12
+  },
+  "apple": {
+    "name": "Apple M3 Pro",
+    "ecpuCores": 6,
+    "pcpuCores": 6,
+    "gpuCores": 18,
+    "memoryGb": 18,
+    "swapTotalBytes": "5368709120",
+    "ramTotalBytes": "19327352832"
+  }
+}

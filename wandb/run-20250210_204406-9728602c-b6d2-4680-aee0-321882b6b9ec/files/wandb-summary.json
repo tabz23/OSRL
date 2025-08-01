@@ -1,0 +1,1 @@
+{"loss/loss_vae": 0.0872195251793767, "loss/critic_loss": 5.262966559485302e-05, "loss/cost_critic_loss": 1.361043213747448, "loss/actor_loss": 0.009131311527126632, "loss/qc_penalty": -0.000844015796522975, "loss/lagrangian": 9.409126332028594e-05, "_timestamp": 1739249302.0696409, "_runtime": 7455.377765893936, "_step": 81980}

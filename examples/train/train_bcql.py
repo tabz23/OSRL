@@ -1,4 +1,8 @@
 import os
+import sys
+sys.path.append("/Users/i.k.tabbara/Documents/python directory/OSRL")
+from examples.configs.bcql_configs import BCQL_DEFAULT_CONFIG
+
 import uuid
 import types
 from dataclasses import asdict, dataclass
@@ -51,7 +55,9 @@ def train(args: BCQLTrainConfig):
     # initialize environment
     if "Metadrive" in args.task:
         import gym
-    env = gym.make(args.task)
+    print(args.task)
+    import gymnasium as gym  # I added this, note that it worked for SafetyCarGoal1Gymnasium-v0 check BCQL_DEFAULT_CONFIG in OSRL/examples/configs/bcql_configs.py to see whether need to use
+    env = gym.make(args.task)#pass in args OfflineCarGoal1Gymnasium-v0
 
     # pre-process offline dataset
     data = env.get_dataset()

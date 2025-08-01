@@ -1,0 +1,1 @@
+{"train_loss_safe": 0.15473923087120056, "train_loss_unsafe": 0.08263882994651794, "train_loss_grad": 0.11236825585365295, "train_avg_safe_B": -0.014370300807058811, "train_avg_unsafe_B": -0.008963069878518581, "train_total_loss": 0.34974631667137146, "step": 0, "_timestamp": 1740279131.255369, "_runtime": 15.62252688407898, "_step": 0, "_wandb": {"runtime": 18}}

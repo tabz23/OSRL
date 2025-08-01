@@ -1,0 +1,23 @@
+{
+    "task": "OfflineSwimmerVelocityGymnasium-v1",
+    "seed": 7,
+    "cbf_hidden_dim": 256,
+    "dynamics_hidden_dim": 256,
+    "cbf_num_layers": 4,
+    "dynamics_num_layers": 4,
+    "batch_size": 128,
+    "learning_rate": 1e-05,
+    "dynamics_learning_rate": 5e-05,
+    "eps_safe": 0.1,
+    "eps_unsafe": 0.15,
+    "eps_grad": 0.0,
+    "w_safe": 1,
+    "w_unsafe": 1.3,
+    "w_grad": 1.2,
+    "train_dynamics": true,
+    "dt": 0.1,
+    "num_action": 2,
+    "state_dim": 8,
+    "best_safe acc": 0.9655358493328094,
+    "best_unsafe_acc": 0.9211346954107285
+}

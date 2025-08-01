@@ -1,0 +1,66 @@
+{
+    "os": "macOS-14.6.1-arm64-arm-64bit",
+    "python": "3.9.21",
+    "heartbeatAt": "2025-04-13T03:00:24.903698",
+    "startedAt": "2025-04-13T03:00:24.489086",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "--task",
+        "OfflineHopperVelocityGymnasium-v1",
+        "--cql",
+        "0",
+        "--temp",
+        "1",
+        "--detach",
+        "True",
+        "--batch_size",
+        "256",
+        "--device=mps",
+        "--num_action_samples_idbf",
+        "10",
+        "--seed",
+        "7",
+        "--cbf_hidden_dim",
+        "128",
+        "--cbf_num_layers",
+        "4"
+    ],
+    "state": "running",
+    "program": "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/check/trainer_idbf.py",
+    "codePath": "examples/research/check/trainer_idbf.py",
+    "git": {
+        "remote": "https://github.com/liuzuxin/OSRL.git",
+        "commit": "03a4586463690566ec8d7830ca4027b46d4ad02f"
+    },
+    "email": "ikt02@mail.aub.edu",
+    "root": "/Users/i.k.tabbara/Documents/python directory/OSRL",
+    "host": "1J000AL-FYYVJW7",
+    "username": "i.k.tabbara",
+    "executable": "/Users/i.k.tabbara/miniconda3/envs/osrl/bin/python",
+    "cpu_count": 12,
+    "cpu_count_logical": 12,
+    "cpu_freq": {
+        "current": 4056,
+        "min": 696,
+        "max": 4056
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 4056,
+            "min": 696,
+            "max": 4056
+        }
+    ],
+    "disk": {
+        "total": 460.4317207336426,
+        "used": 12.298591613769531
+    },
+    "gpuapple": {
+        "type": "arm",
+        "vendor": "Apple"
+    },
+    "memory": {
+        "total": 18.0
+    }
+}

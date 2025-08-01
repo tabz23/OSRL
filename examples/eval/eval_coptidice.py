@@ -17,7 +17,7 @@ class EvalConfig:
     path: str = "log/.../checkpoint/model.pt"
     noise_scale: List[float] = None
     eval_episodes: int = 20
-    best: bool = False
+    best: bool = True
     device: str = "cpu"
     threads: int = 4
 
@@ -36,7 +36,7 @@ def eval(args: EvalConfig):
         import gymnasium as gym  # noqa
 
     env = wrap_env(
-        env=gym.make(cfg["task"]),
+       env=gym.make("SafetyCarGoal2Gymnasium-v0", render_mode="human"),
         reward_scale=cfg["reward_scale"],
     )
     env = OfflineEnvWrapper(env)

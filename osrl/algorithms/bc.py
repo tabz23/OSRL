@@ -142,4 +142,6 @@ class BCTrainer:
             episode_cost += info["cost"]
             if terminated or truncated:
                 break
+            self.env.render()###ADDED THIS ADDED THIS ADDED THIS ADDED THIS ADDED THIS ADDED THIS 
         return episode_ret, episode_len, episode_cost
+

@@ -1,0 +1,50 @@
+{
+    "os": "macOS-14.6.1-arm64-arm-64bit",
+    "python": "3.9.21",
+    "heartbeatAt": "2025-02-25T01:17:42.126834",
+    "startedAt": "2025-02-25T01:17:41.627033",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "--task",
+        "OfflineCarGoal1Gymnasium-v0",
+        "--device=mps"
+    ],
+    "state": "running",
+    "program": "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/check/trainer.py",
+    "codePath": "examples/research/check/trainer.py",
+    "git": {
+        "remote": "https://github.com/liuzuxin/OSRL.git",
+        "commit": "03a4586463690566ec8d7830ca4027b46d4ad02f"
+    },
+    "email": "ikt02@mail.aub.edu",
+    "root": "/Users/i.k.tabbara/Documents/python directory/OSRL",
+    "host": "1J000AL-FYYVJW7",
+    "username": "i.k.tabbara",
+    "executable": "/Users/i.k.tabbara/miniconda3/envs/osrl/bin/python",
+    "cpu_count": 12,
+    "cpu_count_logical": 12,
+    "cpu_freq": {
+        "current": 4056,
+        "min": 696,
+        "max": 4056
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 4056,
+            "min": 696,
+            "max": 4056
+        }
+    ],
+    "disk": {
+        "total": 460.4317207336426,
+        "used": 12.29837417602539
+    },
+    "gpuapple": {
+        "type": "arm",
+        "vendor": "Apple"
+    },
+    "memory": {
+        "total": 18.0
+    }
+}

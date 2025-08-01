@@ -51,6 +51,7 @@ def train(args: CPQTrainConfig):
     # initialize environment
     if "Metadrive" in args.task:
         import gym
+    
     env = gym.make(args.task)
 
     # pre-process offline dataset

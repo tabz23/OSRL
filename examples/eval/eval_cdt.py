@@ -19,8 +19,8 @@ class EvalConfig:
     costs: List[float] = field(default=[10, 10, 10], is_mutable=True)
     noise_scale: List[float] = None
     eval_episodes: int = 20
-    best: bool = False
-    device: str = "cpu"
+    best: bool = True
+    device: str = "mps"
     threads: int = 4
 
 
