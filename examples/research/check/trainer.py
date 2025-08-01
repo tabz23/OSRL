@@ -136,10 +136,10 @@ class CombinedCBFTrainer:
         
         loss_grad = self.compute_gradient_loss(observations, actions, safe_mask)##safe mask means next state is safe 
         avg_random_cbf = 0.0  #i added this
-        if (self.w_CQL>0):
-            loss_cql, logsumexp_h, avg_random_cbf=self.compute_CQL_loss(observations,next_observations,actions,safe_mask)  #i added this - added avg_random_cbf
-            wandb.log({"logsumexp_h": logsumexp_h.mean().item() / self.temp})
-        else:
+
+        loss_cql, logsumexp_h, avg_random_cbf=self.compute_CQL_loss(observations,next_observations,actions,safe_mask)  #i added this - added avg_random_cbf
+        wandb.log({"logsumexp_h": logsumexp_h.mean().item() / self.temp})
+        if (self.w_CQL==0):
             loss_cql=torch.tensor(0.0)
             
         
