@@ -279,6 +279,7 @@ loss_grad_vector.shape torch.Size([128, 1])
         total_avg_unsafe_B = 0.0
         total_safe_acc = 0.0
         total_unsafe_acc = 0.0
+        total_avg_random_cbf = 0.0  #i added this
 
         print("\nStarting validation...")
         # with torch.no_grad():##dont disable grad because need gradient through the barrier. 
@@ -287,12 +288,12 @@ loss_grad_vector.shape torch.Size([128, 1])
             observations, next_observations, actions, _, costs, done = [b.to(torch.float32).to(self.device) for b in batch]
             
             if self.train_dynamics:
-                loss_safe, loss_unsafe, loss_grad,loss_cql, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc = self.compute_loss(
+                loss_safe, loss_unsafe, loss_grad,loss_cql, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
                     observations, next_observations, actions, costs, training_bool=False
                 )
                 total_dynamics_loss += dynamics_loss
             else:
-                loss_safe, loss_unsafe, loss_grad, loss_cql, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc = self.compute_loss(
+                loss_safe, loss_unsafe, loss_grad, loss_cql, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
                     observations, next_observations, actions, costs, training_bool=False
                 )
             
@@ -304,6 +305,7 @@ loss_grad_vector.shape torch.Size([128, 1])
             total_avg_unsafe_B += avg_unsafe_B
             total_safe_acc += safe_acc
             total_unsafe_acc += unsafe_acc
+            total_avg_random_cbf += avg_random_cbf  #i added this
 
         # Calculate averages
         avg_loss_safe = total_loss_safe / self.eval_steps
@@ -313,6 +315,7 @@ loss_grad_vector.shape torch.Size([128, 1])
         avg_dynamics_loss = total_dynamics_loss / self.eval_steps if self.train_dynamics else 0.0
         avg_safe_B = total_avg_safe_B / self.eval_steps
         avg_unsafe_B = total_avg_unsafe_B / self.eval_steps
+        avg_random_cbf = total_avg_random_cbf / self.eval_steps  #i added this
         
         total_cbf_loss = avg_loss_safe + avg_loss_unsafe + avg_loss_grad #+ avg_loss_cql##TODO ADD HERE LIPCHITZ LOSS 
         total_loss = total_cbf_loss + (avg_dynamics_loss if self.train_dynamics else 0.0)
@@ -331,7 +334,8 @@ loss_grad_vector.shape torch.Size([128, 1])
             "val_avg_unsafe_B": avg_unsafe_B,
             "val_safe_acc": avg_safe_acc,
             "val_unsafe_acc": avg_unsafe_acc,
-            "val_total_loss": total_loss
+            "val_total_loss": total_loss,
+            "val_avg_random_cbf": avg_random_cbf  #i added this
         }
         
         if self.train_dynamics:
@@ -371,7 +375,7 @@ loss_grad_vector.shape torch.Size([128, 1])
             observations, next_observations, actions, _, costs, done = [b.to(torch.float32).to(self.device) for b in batch]
             
             if self.train_dynamics:
-                loss_safe, loss_unsafe, loss_grad,loss_cql, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc = self.compute_loss(
+                loss_safe, loss_unsafe, loss_grad,loss_cql, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
                     observations, next_observations, actions, costs, training_bool=True
                 )
                 
@@ -388,10 +392,11 @@ loss_grad_vector.shape torch.Size([128, 1])
                     "train_avg_unsafe_B": avg_unsafe_B,
                     "train_safe_acc": safe_acc,
                     "train_unsafe_acc": unsafe_acc,
+                    "train_avg_random_cbf": avg_random_cbf,  #i added this
                     "step": step
                 }
             else:
-                loss_safe, loss_unsafe, loss_grad,loss_cql, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc = self.compute_loss(
+                loss_safe, loss_unsafe, loss_grad,loss_cql, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
                     observations, next_observations, actions, costs, training_bool=True
                 )
                 
@@ -407,6 +412,7 @@ loss_grad_vector.shape torch.Size([128, 1])
                     "train_avg_unsafe_B": avg_unsafe_B,
                     "train_safe_acc": safe_acc,
                     "train_unsafe_acc": unsafe_acc,
+                    "train_avg_random_cbf": avg_random_cbf,  #i added this
                     "step": step
                 }
                 
@@ -484,7 +490,7 @@ loss_grad_vector.shape torch.Size([128, 1])
                         json.dump(hyperparameters, f, indent=4)
                     print(f"\nBest combined model saved at step {step} with eval loss {total_eval_loss:.4f}")
                     print(f"Hyperparameters saved to {hyperparameters_path}")
-        
+                    
     def setup_optimizer(self):
         # Create parameter groups with different learning rates if needed
         if self.train_dynamics:
@@ -660,5 +666,32 @@ And/or make the logsumexp_h term smaller (which means making the CBF values of r
         loss_cql_actions = self.w_CQL * torch.mean(cql_actions_term)
         return loss_cql_actions
     """
-    
-#python examples/research/check/trainer.py --task OfflineSwimmerVelocityGymnasium-v1  --cql 1 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --w_grad 2 --train_steps 15000
+#for swimmer
+# python examples/research/check/trainer.py --task OfflineSwimmerVelocityGymnasium-v1  --cql 0 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --w_grad 2 --train_steps 15000
+# python examples/research/check/trainer.py --task OfflineSwimmerVelocityGymnasium-v1  --cql 0.5 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --w_grad 2 --train_steps 15000
+# python examples/research/check/trainer.py --task OfflineSwimmerVelocityGymnasium-v1  --cql 1 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --w_grad 2 --train_steps 15000
+
+
+
+
+
+# Training: Safe states → CBF learns "states like this are safe" 
+#                     → "random actions from safe states are risky"
+
+# Validation: New safe states → CBF recognizes "this looks like a safe state"
+#                            → Applies learned rule: "random actions are risky"
+                           
+# CBF is successfully learning that "random actions from safe states tend to be risky" 
+
+##confirming hypothesis we had in the 2d single integrator case, as w increase and at 1 specifically, we started labeling safe OOD states as unsafe, but when wc=0.5 they are simply less safe than the IND safe states but not seen as unsafe.
+
+#note that at first both safe and ranomly reached states have similar B, but as training progresses the OOD safe states are seen as less safe
+#since L_safe only pushes up the safe states that are IND whereas the OOD reached safe states are not pushed up.
+
+
+
+
+#for hopper
+# python  examples/research/check/trainer.py --task OfflineHopperVelocityGymnasium-v1  --cql 0 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --train_steps 50000 --w_grad 2
+# python  examples/research/check/trainer.py --task OfflineHopperVelocityGymnasium-v1  --cql 0.5 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --train_steps 50000 --w_grad 2
+# python  examples/research/check/trainer.py --task OfflineHopperVelocityGymnasium-v1  --cql 1 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --train_steps 50000 --w_grad 2
