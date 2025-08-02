@@ -137,10 +137,14 @@ class CombinedCBFTrainer:
         loss_grad = self.compute_gradient_loss(observations, actions, safe_mask)##safe mask means next state is safe 
         avg_random_cbf = 0.0  #i added this
 
-        loss_cql, logsumexp_h, avg_random_cbf=self.compute_CQL_loss(observations,next_observations,actions,safe_mask)  #i added this - added avg_random_cbf
-        wandb.log({"logsumexp_h": logsumexp_h.mean().item() / self.temp})
-        if (self.w_CQL==0):
-            loss_cql=torch.tensor(0.0)
+        # loss_cql, logsumexp_h, avg_random_cbf=self.compute_CQL_loss(observations,next_observations,actions,safe_mask)  #i added this - added avg_random_cbf
+        # wandb.log({"logsumexp_h": logsumexp_h.mean().item() / self.temp})
+        # if (self.w_CQL==0):
+        #     loss_cql=torch.tensor(0.0)
+        
+        #I added this - replaced CQL loss with random unsafe loss
+        loss_random_unsafe, avg_random_cbf = self.compute_random_unsafe_loss(observations, safe_mask)  #I added this
+        loss_cql = torch.tensor(0.0)  #I added this - set CQL loss to 0 since we're replacing it
             
         
         # Dynamics loss computation if we're also training dynamics
@@ -151,7 +155,8 @@ class CombinedCBFTrainer:
             dynamics_loss = loss_fn(predicted_next_observations, next_observations)
 
         # Total loss
-        cbf_loss = loss_safe + loss_unsafe + loss_grad + loss_lip + loss_cql##added cql loss
+        # cbf_loss = loss_safe + loss_unsafe + loss_grad + loss_lip + loss_cql##added cql loss
+        cbf_loss = loss_safe + loss_unsafe + loss_grad + loss_lip + loss_random_unsafe  #I added this - replaced loss_cql with loss_random_unsafe
         total_loss = cbf_loss + (dynamics_loss if self.train_dynamics else 0.0) 
         
         
@@ -172,9 +177,11 @@ class CombinedCBFTrainer:
         unsafe_acc = ((B < 0) * unsafe_mask).sum() / (num_unsafe_elements + 1e-8)
     
         if self.train_dynamics:
-            return loss_safe.item(), loss_unsafe.item(), loss_grad.item(),loss_cql.item(), dynamics_loss.item(), avg_safe_B.item(), avg_unsafe_B.item(), safe_acc.item(), unsafe_acc.item(), avg_random_cbf  #i added this - added avg_random_cbf to return
+            # return loss_safe.item(), loss_unsafe.item(), loss_grad.item(),loss_cql.item(), dynamics_loss.item(), avg_safe_B.item(), avg_unsafe_B.item(), safe_acc.item(), unsafe_acc.item(), avg_random_cbf  #i added this - added avg_random_cbf to return
+            return loss_safe.item(), loss_unsafe.item(), loss_grad.item(), loss_random_unsafe.item(), dynamics_loss.item(), avg_safe_B.item(), avg_unsafe_B.item(), safe_acc.item(), unsafe_acc.item(), avg_random_cbf  #I added this - replaced loss_cql with loss_random_unsafe
         else: 
-            return loss_safe.item(), loss_unsafe.item(), loss_grad.item(),loss_cql.item(), avg_safe_B.item(), avg_unsafe_B.item(), safe_acc.item(), unsafe_acc.item(), avg_random_cbf  #i added this - added avg_random_cbf to return
+            # return loss_safe.item(), loss_unsafe.item(), loss_grad.item(),loss_cql.item(), avg_safe_B.item(), avg_unsafe_B.item(), safe_acc.item(), unsafe_acc.item(), avg_random_cbf  #i added this - added avg_random_cbf to return
+            return loss_safe.item(), loss_unsafe.item(), loss_grad.item(), loss_random_unsafe.item(), avg_safe_B.item(), avg_unsafe_B.item(), safe_acc.item(), unsafe_acc.item(), avg_random_cbf  #I added this - replaced loss_cql with loss_random_unsafe
 
  
     def compute_next_states(self, observation, action):
@@ -183,39 +190,72 @@ class CombinedCBFTrainer:
     def sample_random_actions(self, batch_size):
         return 2 * torch.rand(batch_size, self.args.num_action, device=self.device) - 1  # IMPORTANT Uniform in [-1,1] MAKE SURE ENVIRONMENTS HAVE THAT CONSTRAINT. MOST GYM ENVS DO THAT
     
-    def compute_CQL_loss(self, observations, next_observations, actions, safe_mask):### ASSUMPTION IMP:i will assume observations are safe in a datapoints if cost is 0 even though cost 0 means next obs is safe.
-        observations_safe = observations[safe_mask.reshape(-1,)]##SAFE_MASK INITIALLY B,1 so reshape to properly use it as boolean mask as we are not using * anymore but rather using it as mask
-        # print("observations.shape", observations.shape)
-        # print("observations_safe.shape", observations_safe.shape)
+    # def compute_CQL_loss(self, observations, next_observations, actions, safe_mask):### ASSUMPTION IMP:i will assume observations are safe in a datapoints if cost is 0 even though cost 0 means next obs is safe.
+    #     observations_safe = observations[safe_mask.reshape(-1,)]##SAFE_MASK INITIALLY B,1 so reshape to properly use it as boolean mask as we are not using * anymore but rather using it as mask
+    #     # print("observations.shape", observations.shape)
+    #     # print("observations_safe.shape", observations_safe.shape)
 
-        next_observations_safe = next_observations[safe_mask.reshape(-1,)]
-        # print("next_observations_.shape", next_observations.shape)
-        # print("next_observations_safe.shape", next_observations_safe.shape)
-        next_observation_h = self.model.forward_cbf(next_observations_safe)
+    #     next_observations_safe = next_observations[safe_mask.reshape(-1,)]
+    #     # print("next_observations_.shape", next_observations.shape)
+    #     # print("next_observations_safe.shape", next_observations_safe.shape)
+    #     next_observation_h = self.model.forward_cbf(next_observations_safe)
+    #     all_random_next_h = []
+    #     for _ in range(self.num_action_samples):
+    #         random_actions = self.sample_random_actions(observations_safe.shape[0])
+    #         random_next_states = self.compute_next_states(observations_safe, random_actions)
+    #         random_next_h = self.model.forward_cbf(random_next_states)
+    #         all_random_next_h.append(random_next_h.squeeze())
+            
+    #     avg_random_cbf = 0.0  #i added this
+    #     if all_random_next_h:
+    #         stacked_h_values = torch.stack(all_random_next_h, dim=1)
+    #         avg_random_cbf = torch.mean(stacked_h_values).item()  #i added this
+    #         combined_h_values = torch.cat([stacked_h_values, next_observation_h.squeeze().unsqueeze(1)], dim=1)
+    #         logsumexp_h = self.temp * torch.logsumexp(combined_h_values/self.temp, dim=1)
+           
+            
+    #         # print(logsumexp_h[0:10])
+    #         # print(next_observation_h[0:10])
+    #         if not self.detach:
+    #             cql_actions_term = logsumexp_h - next_observation_h.squeeze()
+    #         else:
+    #             cql_actions_term = logsumexp_h - next_observation_h.squeeze().detach()
+    #         loss_cql_actions = self.w_CQL * torch.mean(cql_actions_term)
+    #         return loss_cql_actions,logsumexp_h, avg_random_cbf  #i added this - added avg_random_cbf to return
+
+    def compute_random_unsafe_loss(self, observations, safe_mask):  #I added this - new function to treat random states as unsafe
+        """
+        Sample random actions from safe states and treat the resulting states as unsafe.
+        This replaces the CQL loss approach.
+        """
+        observations_safe = observations[safe_mask.reshape(-1,)]
+        
+        all_random_next_states = []
         all_random_next_h = []
+        
         for _ in range(self.num_action_samples):
             random_actions = self.sample_random_actions(observations_safe.shape[0])
             random_next_states = self.compute_next_states(observations_safe, random_actions)
             random_next_h = self.model.forward_cbf(random_next_states)
+            all_random_next_states.append(random_next_states)
             all_random_next_h.append(random_next_h.squeeze())
             
-        avg_random_cbf = 0.0  #i added this
+        avg_random_cbf = 0.0
+        loss_random_unsafe = torch.tensor(0.0, device=self.device)
+        
         if all_random_next_h:
-            stacked_h_values = torch.stack(all_random_next_h, dim=1)
-            avg_random_cbf = torch.mean(stacked_h_values).item()  #i added this
-            combined_h_values = torch.cat([stacked_h_values, next_observation_h.squeeze().unsqueeze(1)], dim=1)
-            logsumexp_h = self.temp * torch.logsumexp(combined_h_values/self.temp, dim=1)
-           
+            # Stack all random next states and their CBF values
+            stacked_random_states = torch.cat(all_random_next_states, dim=0)  # Shape: (num_samples * batch_size, state_dim)
+            stacked_h_values = torch.cat(all_random_next_h, dim=0)  # Shape: (num_samples * batch_size,)
             
-            # print(logsumexp_h[0:10])
-            # print(next_observation_h[0:10])
-            if not self.detach:
-                cql_actions_term = logsumexp_h - next_observation_h.squeeze()
-            else:
-                cql_actions_term = logsumexp_h - next_observation_h.squeeze().detach()
-            loss_cql_actions = self.w_CQL * torch.mean(cql_actions_term)
-            return loss_cql_actions,logsumexp_h, avg_random_cbf  #i added this - added avg_random_cbf to return
-
+            avg_random_cbf = torch.mean(stacked_h_values).item()
+            
+            # Treat all random next states as unsafe: h(x) < 0 for unsafe states
+            # Loss = relu(eps_unsafe + h(x)) for unsafe states
+            loss_random_unsafe_vector = self.w_CQL * F.relu(self.eps_unsafe + stacked_h_values.reshape(-1, 1))
+            loss_random_unsafe = loss_random_unsafe_vector.mean()
+            
+        return loss_random_unsafe, avg_random_cbf  #I added this
         
     def compute_gradient_loss(self, observations, actions, safe_mask):
         """
@@ -273,7 +313,8 @@ loss_grad_vector.shape torch.Size([128, 1])
         total_loss_safe = 0.0
         total_loss_unsafe = 0.0
         total_loss_grad = 0.0
-        total_loss_cql=0.0
+        # total_loss_cql=0.0
+        total_loss_random_unsafe = 0.0  #I added this - track random unsafe loss instead of CQL
         total_dynamics_loss = 0.0
         total_avg_safe_B = 0.0
         total_avg_unsafe_B = 0.0
@@ -288,19 +329,22 @@ loss_grad_vector.shape torch.Size([128, 1])
             observations, next_observations, actions, _, costs, done = [b.to(torch.float32).to(self.device) for b in batch]
             
             if self.train_dynamics:
-                loss_safe, loss_unsafe, loss_grad,loss_cql, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
+                # loss_safe, loss_unsafe, loss_grad,loss_cql, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
+                loss_safe, loss_unsafe, loss_grad, loss_random_unsafe, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #I added this - replaced loss_cql with loss_random_unsafe
                     observations, next_observations, actions, costs, training_bool=False
                 )
                 total_dynamics_loss += dynamics_loss
             else:
-                loss_safe, loss_unsafe, loss_grad, loss_cql, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
+                # loss_safe, loss_unsafe, loss_grad, loss_cql, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
+                loss_safe, loss_unsafe, loss_grad, loss_random_unsafe, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #I added this - replaced loss_cql with loss_random_unsafe
                     observations, next_observations, actions, costs, training_bool=False
                 )
             
             total_loss_safe += loss_safe
             total_loss_unsafe += loss_unsafe
             total_loss_grad += loss_grad
-            total_loss_cql+=loss_cql
+            # total_loss_cql+=loss_cql
+            total_loss_random_unsafe += loss_random_unsafe  #I added this
             total_avg_safe_B += avg_safe_B
             total_avg_unsafe_B += avg_unsafe_B
             total_safe_acc += safe_acc
@@ -311,13 +355,15 @@ loss_grad_vector.shape torch.Size([128, 1])
         avg_loss_safe = total_loss_safe / self.eval_steps
         avg_loss_unsafe = total_loss_unsafe / self.eval_steps
         avg_loss_grad = total_loss_grad / self.eval_steps
-        avg_loss_cql = total_loss_cql /self.eval_steps
+        # avg_loss_cql = total_loss_cql /self.eval_steps
+        avg_loss_random_unsafe = total_loss_random_unsafe / self.eval_steps  #I added this
         avg_dynamics_loss = total_dynamics_loss / self.eval_steps if self.train_dynamics else 0.0
         avg_safe_B = total_avg_safe_B / self.eval_steps
         avg_unsafe_B = total_avg_unsafe_B / self.eval_steps
         avg_random_cbf = total_avg_random_cbf / self.eval_steps  #i added this
         
-        total_cbf_loss = avg_loss_safe + avg_loss_unsafe + avg_loss_grad #+ avg_loss_cql##TODO ADD HERE LIPCHITZ LOSS 
+        # total_cbf_loss = avg_loss_safe + avg_loss_unsafe + avg_loss_grad #+ avg_loss_cql##TODO ADD HERE LIPCHITZ LOSS 
+        total_cbf_loss = avg_loss_safe + avg_loss_unsafe + avg_loss_grad + avg_loss_random_unsafe  #I added this - include random unsafe loss
         total_loss = total_cbf_loss + (avg_dynamics_loss if self.train_dynamics else 0.0)
         
         avg_safe_acc = total_safe_acc / self.eval_steps
@@ -328,7 +374,8 @@ loss_grad_vector.shape torch.Size([128, 1])
             "val_loss_safe": avg_loss_safe,
             "val_loss_unsafe": avg_loss_unsafe,
             "val_loss_grad": avg_loss_grad,
-            "val_loss_cql": avg_loss_cql,
+            # "val_loss_cql": avg_loss_cql,
+            "val_loss_random_unsafe": avg_loss_random_unsafe,  #I added this
             "val_cbf_loss": total_cbf_loss,
             "val_avg_safe_B": avg_safe_B,
             "val_avg_unsafe_B": avg_unsafe_B,
@@ -347,7 +394,8 @@ loss_grad_vector.shape torch.Size([128, 1])
         print("\nValidation Results:")
         print(f"Average Safe Loss: {avg_loss_safe:.4f}")
         print(f"Average Unsafe Loss: {avg_loss_unsafe:.4f}")
-        print(f"Average cql Loss: {avg_loss_cql:.4f}")
+        # print(f"Average cql Loss: {avg_loss_cql:.4f}")
+        print(f"Average Random Unsafe Loss: {avg_loss_random_unsafe:.4f}")  #I added this
         print(f"Average Gradient Loss: {avg_loss_grad:.4f}")
         if self.train_dynamics:
             print(f"Average Dynamics Loss: {avg_dynamics_loss:.4f}")
@@ -360,6 +408,71 @@ loss_grad_vector.shape torch.Size([128, 1])
         self.model.train()
             
         return total_loss, avg_safe_acc, avg_unsafe_acc
+                    
+    def train(self):
+        trainloader_iter = iter(self.train_dataset)
+        lowest_eval_loss = float("inf")
+        
+        # Setup model save path
+        base_path = f"/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/{self.args.task}_{self.random_value}"
+        os.makedirs(base_path, exist_ok=True)
+
+        print("\nStarting training combined CBF and dynamics...")
+        for step in trange(self.train_steps, desc="Training"):
+            batch = next(trainloader_iter)
+            observations, next_observations, actions, _, costs, done = [b.to(torch.float32).to(self.device) for b in batch]
+            
+            if self.train_dynamics:
+                # loss_safe, loss_unsafe, loss_grad,loss_cql, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
+                loss_safe, loss_unsafe, loss_grad, loss_random_unsafe, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #I added this - replaced loss_cql with loss_random_unsafe
+                    observations, next_observations, actions, costs, training_bool=True
+                )
+                
+                # Log training metrics
+                log_dict = {
+                    "train_loss_safe": loss_safe,
+                    "train_loss_unsafe": loss_unsafe,
+                    "train_loss_grad": loss_grad,
+                    # "train_loss_cql":loss_cql,
+                    "train_loss_random_unsafe": loss_random_unsafe,  #I added this
+                    "train_dynamics_loss": dynamics_loss,
+                    # "train_cbf_loss": loss_safe + loss_unsafe + loss_grad + loss_cql,
+                    "train_cbf_loss": loss_safe + loss_unsafe + loss_grad + loss_random_unsafe,  #I added this
+                    # "train_total_loss": loss_safe + loss_unsafe + loss_grad + dynamics_loss + loss_cql,
+                    "train_total_loss": loss_safe + loss_unsafe + loss_grad + dynamics_loss + loss_random_unsafe,  #I added this
+                    "train_avg_safe_B": avg_safe_B,
+                    "train_avg_unsafe_B": avg_unsafe_B,
+                    "train_safe_acc": safe_acc,
+                    "train_unsafe_acc": unsafe_acc,
+                    "train_avg_random_cbf": avg_random_cbf,  #i added this
+                    "step": step
+                }
+            else:
+                # loss_safe, loss_unsafe, loss_grad,loss_cql, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
+                loss_safe, loss_unsafe, loss_grad, loss_random_unsafe, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #I added this - replaced loss_cql with loss_random_unsafe
+                    observations, next_observations, actions, costs, training_bool=True
+                )
+                
+                # Log training metrics
+                log_dict = {
+                    "train_loss_safe": loss_safe,
+                    "train_loss_unsafe": loss_unsafe,
+                    "train_loss_grad": loss_grad,
+                    # "train_loss_cql":loss_cql,
+                    "train_loss_random_unsafe": loss_random_unsafe,  #I added this
+                    # "train_cbf_loss": loss_safe + loss_unsafe + loss_grad,
+                    "train_cbf_loss": loss_safe + loss_unsafe + loss_grad + loss_random_unsafe,  #I added this
+                    # "train_total_loss": loss_safe + loss_unsafe + loss_grad,
+                    "train_total_loss": loss_safe + loss_unsafe + loss_grad + loss_random_unsafe,  #I added this
+                    "train_avg_safe_B": avg_safe_B,
+                    "train_avg_unsafe_B": avg_unsafe_B,
+                    "train_safe_acc": safe_acc,
+                    "train_unsafe_acc": unsafe_acc,
+                    "train_avg_random_cbf": avg_random_cbf,  #i added this
+                    "step": step
+                }
+                
+            wandb.log(log_dict)
                     
     def train(self):
         trainloader_iter = iter(self.train_dataset)
