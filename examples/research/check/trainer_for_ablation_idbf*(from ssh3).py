@@ -7,7 +7,7 @@ from typing import Any
 import json
 import random
 
-sys.path.append("/Users/i.k.tabbara/Documents/python directory/OSRL")
+sys.path.append("/storage1/sibai/Active/ihab/research/OSRL")
 
 import bullet_safety_gym  # noqa
 import dsrl
@@ -34,7 +34,7 @@ class CombinedCBFTrainer:
     def __init__(self, model, train_dataset, val_dataset, dt=0.1, lr=1e-4, device="cpu", train_steps=10000, 
                  eval_every_n_steps=100, eval_steps=100, args=None,
                  eps_safe=0.1, eps_unsafe=0.1, eps_grad=0.1, w_safe=1, w_unsafe=1, w_grad=0.1,lambda_lip=20,w_CQL=1,
-                 train_dynamics=True, dynamics_lr=1e-4,num_action_samples=10,temp=0.9,detach=False):
+                 train_dynamics=True, dynamics_lr=1e-4,num_action_samples=10,temp=0.9,detach=False,loss_random_unsafe=False):
         
         self.model = model.to(device)
         self.train_dataset = train_dataset
@@ -90,7 +90,8 @@ class CombinedCBFTrainer:
             "lambda_lip":self.lambda_lip,
             "num_action_samples":num_action_samples,
             "temp":self.temp,
-            "detach":self.detach
+            "detach":self.detach,
+            "loss_random_unsafe":loss_random_unsafe
         }
         
         wandb.init(project="combined_cbf_dynamics_training",name=f"run_{self.args.task}_{self.random_value}", config=config)
@@ -306,6 +307,52 @@ bdot shape torch.Size([128, 1])
 b_dot.shape torch.Size([128, 1])
 loss_grad_vector.shape torch.Size([128, 1])
 '''
+    def debug_action_coherence(self, test_batch):
+        """
+        Test if CBF distinguishes between coherent vs random action patterns
+        """
+        observations, next_observations, actions, _, costs, done = test_batch
+        safe_mask = (costs <= 0).reshape(-1, 1)
+        observations_safe = observations[safe_mask.reshape(-1,)]
+        dataset_actions = actions[safe_mask.reshape(-1,)]
+        
+        # 1. Dataset actions (coherent, goal-directed)
+        dataset_next_states = self.compute_next_states(observations_safe, dataset_actions)
+        cbf_dataset_actions = self.model.forward_cbf(dataset_next_states)
+        
+        # 2. Smoothed random actions (partially coherent)
+        alpha = 0.7  # Mix with dataset actions
+        partial_random = alpha * dataset_actions + (1-alpha) * self.sample_random_actions(observations_safe.shape[0])
+        partial_next_states = self.compute_next_states(observations_safe, partial_random)
+        cbf_partial_random = self.model.forward_cbf(partial_next_states)
+        
+        # 3. Pure random actions (chaotic)
+        pure_random = self.sample_random_actions(observations_safe.shape[0])
+        pure_random_states = self.compute_next_states(observations_safe, pure_random)
+        cbf_pure_random = self.model.forward_cbf(pure_random_states)
+        
+        # 4. Reversed actions (anti-coherent)
+        reversed_actions = -dataset_actions  # Opposite direction
+        reversed_next_states = self.compute_next_states(observations_safe, reversed_actions)
+        cbf_reversed = self.model.forward_cbf(reversed_next_states)
+        
+        results = {
+            "cbf_dataset": torch.mean(cbf_dataset_actions).item(),
+            "cbf_partial_random": torch.mean(cbf_partial_random).item(),
+            "cbf_pure_random": torch.mean(cbf_pure_random).item(),
+            "cbf_reversed": torch.mean(cbf_reversed).item()
+        }
+        
+        wandb.log({
+            "coherence_dataset": results["cbf_dataset"],
+            "coherence_partial": results["cbf_partial_random"],
+            "coherence_random": results["cbf_pure_random"],
+            "coherence_reversed": results["cbf_reversed"]
+        })
+        
+        print(f"Action Coherence: Dataset={results['cbf_dataset']:.4f} > Partial={results['cbf_partial_random']:.4f} > Random={results['cbf_pure_random']:.4f}, Reversed={results['cbf_reversed']:.4f}")
+        
+        return results
     def validate(self):
         self.model.eval()
             
@@ -327,6 +374,7 @@ loss_grad_vector.shape torch.Size([128, 1])
         for step in range(self.eval_steps):
             batch = next(valloader_iter)
             observations, next_observations, actions, _, costs, done = [b.to(torch.float32).to(self.device) for b in batch]
+            debug_results = self.debug_action_coherence([observations, next_observations, actions, _, costs, done])  #I added this
             
             if self.train_dynamics:
                 # loss_safe, loss_unsafe, loss_grad,loss_cql, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
@@ -409,77 +457,77 @@ loss_grad_vector.shape torch.Size([128, 1])
             
         return total_loss, avg_safe_acc, avg_unsafe_acc
                     
-    def train(self):
-        trainloader_iter = iter(self.train_dataset)
-        lowest_eval_loss = float("inf")
+    # def train(self):
+    #     trainloader_iter = iter(self.train_dataset)
+    #     lowest_eval_loss = float("inf")
         
-        # Setup model save path
-        base_path = f"/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/{self.args.task}_{self.random_value}"
-        os.makedirs(base_path, exist_ok=True)
+    #     # Setup model save path
+    #     base_path = f"/storage1/sibai/Active/ihab/research/OSRL/{self.args.task}_{self.random_value}"
+    #     os.makedirs(base_path, exist_ok=True)
 
-        print("\nStarting training combined CBF and dynamics...")
-        for step in trange(self.train_steps, desc="Training"):
-            batch = next(trainloader_iter)
-            observations, next_observations, actions, _, costs, done = [b.to(torch.float32).to(self.device) for b in batch]
+    #     print("\nStarting training combined CBF and dynamics...")
+    #     for step in trange(self.train_steps, desc="Training"):
+    #         batch = next(trainloader_iter)
+    #         observations, next_observations, actions, _, costs, done = [b.to(torch.float32).to(self.device) for b in batch]
             
-            if self.train_dynamics:
-                # loss_safe, loss_unsafe, loss_grad,loss_cql, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
-                loss_safe, loss_unsafe, loss_grad, loss_random_unsafe, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #I added this - replaced loss_cql with loss_random_unsafe
-                    observations, next_observations, actions, costs, training_bool=True
-                )
+    #         if self.train_dynamics:
+    #             # loss_safe, loss_unsafe, loss_grad,loss_cql, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
+    #             loss_safe, loss_unsafe, loss_grad, loss_random_unsafe, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #I added this - replaced loss_cql with loss_random_unsafe
+    #                 observations, next_observations, actions, costs, training_bool=True
+    #             )
                 
-                # Log training metrics
-                log_dict = {
-                    "train_loss_safe": loss_safe,
-                    "train_loss_unsafe": loss_unsafe,
-                    "train_loss_grad": loss_grad,
-                    # "train_loss_cql":loss_cql,
-                    "train_loss_random_unsafe": loss_random_unsafe,  #I added this
-                    "train_dynamics_loss": dynamics_loss,
-                    # "train_cbf_loss": loss_safe + loss_unsafe + loss_grad + loss_cql,
-                    "train_cbf_loss": loss_safe + loss_unsafe + loss_grad + loss_random_unsafe,  #I added this
-                    # "train_total_loss": loss_safe + loss_unsafe + loss_grad + dynamics_loss + loss_cql,
-                    "train_total_loss": loss_safe + loss_unsafe + loss_grad + dynamics_loss + loss_random_unsafe,  #I added this
-                    "train_avg_safe_B": avg_safe_B,
-                    "train_avg_unsafe_B": avg_unsafe_B,
-                    "train_safe_acc": safe_acc,
-                    "train_unsafe_acc": unsafe_acc,
-                    "train_avg_random_cbf": avg_random_cbf,  #i added this
-                    "step": step
-                }
-            else:
-                # loss_safe, loss_unsafe, loss_grad,loss_cql, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
-                loss_safe, loss_unsafe, loss_grad, loss_random_unsafe, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #I added this - replaced loss_cql with loss_random_unsafe
-                    observations, next_observations, actions, costs, training_bool=True
-                )
+    #             # Log training metrics
+    #             log_dict = {
+    #                 "train_loss_safe": loss_safe,
+    #                 "train_loss_unsafe": loss_unsafe,
+    #                 "train_loss_grad": loss_grad,
+    #                 # "train_loss_cql":loss_cql,
+    #                 "train_loss_random_unsafe": loss_random_unsafe,  #I added this
+    #                 "train_dynamics_loss": dynamics_loss,
+    #                 # "train_cbf_loss": loss_safe + loss_unsafe + loss_grad + loss_cql,
+    #                 "train_cbf_loss": loss_safe + loss_unsafe + loss_grad + loss_random_unsafe,  #I added this
+    #                 # "train_total_loss": loss_safe + loss_unsafe + loss_grad + dynamics_loss + loss_cql,
+    #                 "train_total_loss": loss_safe + loss_unsafe + loss_grad + dynamics_loss + loss_random_unsafe,  #I added this
+    #                 "train_avg_safe_B": avg_safe_B,
+    #                 "train_avg_unsafe_B": avg_unsafe_B,
+    #                 "train_safe_acc": safe_acc,
+    #                 "train_unsafe_acc": unsafe_acc,
+    #                 "train_avg_random_cbf": avg_random_cbf,  #i added this
+    #                 "step": step
+    #             }
+    #         else:
+    #             # loss_safe, loss_unsafe, loss_grad,loss_cql, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
+    #             loss_safe, loss_unsafe, loss_grad, loss_random_unsafe, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #I added this - replaced loss_cql with loss_random_unsafe
+    #                 observations, next_observations, actions, costs, training_bool=True
+    #             )
                 
-                # Log training metrics
-                log_dict = {
-                    "train_loss_safe": loss_safe,
-                    "train_loss_unsafe": loss_unsafe,
-                    "train_loss_grad": loss_grad,
-                    # "train_loss_cql":loss_cql,
-                    "train_loss_random_unsafe": loss_random_unsafe,  #I added this
-                    # "train_cbf_loss": loss_safe + loss_unsafe + loss_grad,
-                    "train_cbf_loss": loss_safe + loss_unsafe + loss_grad + loss_random_unsafe,  #I added this
-                    # "train_total_loss": loss_safe + loss_unsafe + loss_grad,
-                    "train_total_loss": loss_safe + loss_unsafe + loss_grad + loss_random_unsafe,  #I added this
-                    "train_avg_safe_B": avg_safe_B,
-                    "train_avg_unsafe_B": avg_unsafe_B,
-                    "train_safe_acc": safe_acc,
-                    "train_unsafe_acc": unsafe_acc,
-                    "train_avg_random_cbf": avg_random_cbf,  #i added this
-                    "step": step
-                }
+    #             # Log training metrics
+    #             log_dict = {
+    #                 "train_loss_safe": loss_safe,
+    #                 "train_loss_unsafe": loss_unsafe,
+    #                 "train_loss_grad": loss_grad,
+    #                 # "train_loss_cql":loss_cql,
+    #                 "train_loss_random_unsafe": loss_random_unsafe,  #I added this
+    #                 # "train_cbf_loss": loss_safe + loss_unsafe + loss_grad,
+    #                 "train_cbf_loss": loss_safe + loss_unsafe + loss_grad + loss_random_unsafe,  #I added this
+    #                 # "train_total_loss": loss_safe + loss_unsafe + loss_grad,
+    #                 "train_total_loss": loss_safe + loss_unsafe + loss_grad + loss_random_unsafe,  #I added this
+    #                 "train_avg_safe_B": avg_safe_B,
+    #                 "train_avg_unsafe_B": avg_unsafe_B,
+    #                 "train_safe_acc": safe_acc,
+    #                 "train_unsafe_acc": unsafe_acc,
+    #                 "train_avg_random_cbf": avg_random_cbf,  #i added this
+    #                 "step": step
+    #             }
                 
-            wandb.log(log_dict)
+    #         wandb.log(log_dict)
                     
     def train(self):
         trainloader_iter = iter(self.train_dataset)
         lowest_eval_loss = float("inf")
         
         # Setup model save path
-        base_path = f"/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/{self.args.task}_{self.random_value}"
+        base_path = f"/storage1/sibai/Active/ihab/research/OSRL/{self.args.task}_{self.random_value}"
         os.makedirs(base_path, exist_ok=True)
 
         print("\nStarting training combined CBF and dynamics...")
@@ -488,7 +536,7 @@ loss_grad_vector.shape torch.Size([128, 1])
             observations, next_observations, actions, _, costs, done = [b.to(torch.float32).to(self.device) for b in batch]
             
             if self.train_dynamics:
-                loss_safe, loss_unsafe, loss_grad,loss_cql, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
+                loss_safe, loss_unsafe, loss_grad,loss_random_unsafe, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
                     observations, next_observations, actions, costs, training_bool=True
                 )
                 
@@ -497,10 +545,10 @@ loss_grad_vector.shape torch.Size([128, 1])
                     "train_loss_safe": loss_safe,
                     "train_loss_unsafe": loss_unsafe,
                     "train_loss_grad": loss_grad,
-                    "train_loss_cql":loss_cql,
+                    # "train_loss_cql":loss_cql,
                     "train_dynamics_loss": dynamics_loss,
-                    "train_cbf_loss": loss_safe + loss_unsafe + loss_grad + loss_cql,
-                    "train_total_loss": loss_safe + loss_unsafe + loss_grad + dynamics_loss + loss_cql,
+                    "train_cbf_loss": loss_safe + loss_unsafe + loss_grad + loss_random_unsafe,
+                    "train_total_loss": loss_safe + loss_unsafe + loss_grad + dynamics_loss + loss_random_unsafe,
                     "train_avg_safe_B": avg_safe_B,
                     "train_avg_unsafe_B": avg_unsafe_B,
                     "train_safe_acc": safe_acc,
@@ -509,7 +557,7 @@ loss_grad_vector.shape torch.Size([128, 1])
                     "step": step
                 }
             else:
-                loss_safe, loss_unsafe, loss_grad,loss_cql, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
+                loss_safe, loss_unsafe, loss_grad,loss_random_unsafe, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
                     observations, next_observations, actions, costs, training_bool=True
                 )
                 
@@ -518,7 +566,7 @@ loss_grad_vector.shape torch.Size([128, 1])
                     "train_loss_safe": loss_safe,
                     "train_loss_unsafe": loss_unsafe,
                     "train_loss_grad": loss_grad,
-                    "train_loss_cql":loss_cql,
+                    # "train_loss_cql":loss_cql,
                     "train_cbf_loss": loss_safe + loss_unsafe + loss_grad,
                     "train_total_loss": loss_safe + loss_unsafe + loss_grad,
                     "train_avg_safe_B": avg_safe_B,
@@ -567,7 +615,7 @@ loss_grad_vector.shape torch.Size([128, 1])
             if (step+1) % self.eval_every_n_steps == 0:
                 total_eval_loss,val_avg_safe_acc, val_avg_unsafe_acc = self.validate()
                 
-                if (total_eval_loss < lowest_eval_loss) and (val_avg_safe_acc>0.86) and (val_avg_unsafe_acc>0.86): ###FIX THS LATER
+                if (total_eval_loss < lowest_eval_loss) and (val_avg_safe_acc>0.83) and (val_avg_unsafe_acc>0.83): ###FIX THS LATER
                 # if (total_eval_loss < lowest_eval_loss) and (val_avg_safe_acc>0.7) and (val_avg_unsafe_acc>0.7):
                     lowest_eval_loss = total_eval_loss
                     
@@ -649,10 +697,14 @@ def main(args: BCTrainConfig):
     args.num_action = env.action_space.shape[0]
     args.state_dim = env.observation_space.shape[0]
     
-    # Create data loaders
-    trainloader = DataLoader(TransitionDataset(data, split='train'), batch_size=args.batch_size, pin_memory=True, num_workers=args.num_workers)
-    valloader = DataLoader(TransitionDataset(data, split='val'), batch_size=args.batch_size, pin_memory=True, num_workers=args.num_workers)
-    
+    # # Create data loaders
+    # trainloader = DataLoader(TransitionDataset(data, split='train'), batch_size=args.batch_size, pin_memory=True, num_workers=args.num_workers)
+    # valloader = DataLoader(TransitionDataset(data, split='val'), batch_size=args.batch_size, pin_memory=True, num_workers=args.num_workers)
+    # For trajectory-level split (completely separate trajectories):
+    trainloader = DataLoader(TransitionDataset(data, split='train', trajectory_split=True), 
+                            batch_size=args.batch_size, pin_memory=True, num_workers=args.num_workers)
+    valloader = DataLoader(TransitionDataset(data, split='val', trajectory_split=True), 
+                    batch_size=args.batch_size, pin_memory=True, num_workers=args.num_workers)
     # Create the combined model
     combined_model = CombinedCBFDynamics(
         num_action=args.num_action,
@@ -704,7 +756,8 @@ def main(args: BCTrainConfig):
         w_CQL=args.cql,
         num_action_samples=args.num_action_samples_cql,
         temp=args.temp,
-        detach=args.detach
+        detach=args.detach,
+        loss_random_unsafe=args.loss_random_unsafe
     )
     
     # Train models
@@ -716,7 +769,7 @@ def main(args: BCTrainConfig):
     standalone_dynamics = combined_model.get_dynamics_model()
     
     # Save individual models if needed
-    base_path = "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/"
+    base_path = "/storage1/sibai/Active/ihab/research/OSRL/examples/research/models/"
     torch.save(standalone_cbf.state_dict(), f"{base_path}extracted_cbf_model_task{args.task}_seed{args.seed}.pth")
     torch.save(standalone_dynamics.state_dict(), f"{base_path}extracted_dynamics_model_task{args.task}_seed{args.seed}.pth")
     

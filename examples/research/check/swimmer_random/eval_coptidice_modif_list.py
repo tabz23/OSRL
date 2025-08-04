@@ -265,18 +265,18 @@ def eval(args: EvalConfig):
 #   Avg Normalized Cost: 9.9292, std: 0.5781
 #   Avg Length: 1000.0000, std: 0.0000
 
-            ####for ablation without detach. only the first model is important and is that CCBF without detach
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_110/combined_model.pth",#only care about this
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_110/combined_model.pth",
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_110/combined_model.pth",
-    # ##ccbf
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_395/combined_model.pth",#bigger model. p=10
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_395/combined_model.pth",
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_395/combined_model.pth",
-    #   #CBF
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_568/combined_model.pth",#idc about this
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_568/combined_model.pth",
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_568/combined_model.pth",
+    #         ####for ablation without detach. only the first model is important and is that CCBF without detach
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_110/combined_model.pth",#only care about this
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_110/combined_model.pth",
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_110/combined_model.pth",
+    # # ##ccbf
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_395/combined_model.pth",#bigger model. p=10
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_395/combined_model.pth",
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_395/combined_model.pth",
+    # #   #CBF
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_568/combined_model.pth",#idc about this
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_568/combined_model.pth",
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_568/combined_model.pth",
 
 # Group idbf (Models 1-3):
 #   Avg Normalized Reward: 0.3913, std: 0.0359
@@ -292,7 +292,18 @@ def eval(args: EvalConfig):
 #   Avg Normalized Reward: 0.5000, std: 0.0406
 #   Avg Normalized Cost: 5.2158, std: 0.5074
 #   Avg Length: 1000.0000, std: 0.0000
-
+        # ####for ablation without detach. only the first model is important and is that CCBF without detach
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_539/combined_model.pth",#only care abt this
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_539/combined_model.pth",
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_539/combined_model.pth",
+    # ##ccbf
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_666/combined_model.pth",#bigger model. p=10
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_666/combined_model.pth",
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_666/combined_model.pth",
+    #   #CBF
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_568/combined_model.pth",#idc about this
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_568/combined_model.pth",
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineSwimmerVelocityGymnasium-v1_568/combined_model.pth",
     ]
     # model_paths = [    
     # ####final ones below
@@ -468,3 +479,37 @@ None:
   Avg Normalized Cost: 1.6450, std: 0.33
   Avg Length: 1000.0000, std: 0.0000
 '''
+
+#beststep new L_unsafe instead of L_c
+#copti 
+# Group idbf (Models 1-3):
+#   Avg Normalized Reward: 0.4804, std: 0.0100
+#   Avg Normalized Cost: 0.9633, std: 0.4220
+#   Avg Length: 1000.0000, std: 0.0000
+
+# Group ccbf (Models 4-6):
+#   Avg Normalized Reward: 0.3479, std: 0.0250
+#   Avg Normalized Cost: 6.0108, std: 0.8182
+#   Avg Length: 1000.0000, std: 0.0000
+
+# Group cbf (Models 7-9):
+#   Avg Normalized Reward: 0.5092, std: 0.0433
+#   Avg Normalized Cost: 5.6092, std: 1.0484
+#   Avg Length: 1000.0000, std: 0.0000
+
+
+#laststep
+# Group idbf (Models 1-3):
+#   Avg Normalized Reward: 0.3176, std: 0.0071
+#   Avg Normalized Cost: 3.0675, std: 0.5574
+#   Avg Length: 1000.0000, std: 0.0000
+
+# Group ccbf (Models 4-6):
+#   Avg Normalized Reward: 0.2297, std: 0.0094
+#   Avg Normalized Cost: 0.7283, std: 0.0845
+#   Avg Length: 1000.0000, std: 0.0000
+
+# Group cbf (Models 7-9):
+#   Avg Normalized Reward: 0.4780, std: 0.0458
+#   Avg Normalized Cost: 5.4658, std: 0.1409
+#   Avg Length: 1000.0000, std: 0.0000

@@ -225,17 +225,17 @@ def eval(args: EvalConfig):
 
                   
 ##for ablation with and without detach
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_559/combined_model.pth",#this is without detach. dont care about the below
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_559/combined_model.pth",
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_559/combined_model.pth",
-    # ##ccbf
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_189/combined_model.pth",#p=10, big model
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_189/combined_model.pth",
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_189/combined_model.pth",
-    #   #CBF
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_445/combined_model.pth",#dont care
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_445/combined_model.pth",
-    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_445/combined_model.pth",           
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_559/combined_model.pth",#this is without detach. dont care about the below
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_559/combined_model.pth",
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_559/combined_model.pth",
+    # # ##ccbf
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_189/combined_model.pth",#p=10, big model
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_189/combined_model.pth",
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_189/combined_model.pth",
+    # #   #CBF
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_445/combined_model.pth",#dont care
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_445/combined_model.pth",
+    # "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_445/combined_model.pth",           
 # Group idbf (Models 1-3):
 #   Avg Normalized Reward: 0.1760, std: 0.0026
 #   Avg Normalized Cost: 0.0092, std: 0.0072
@@ -284,6 +284,18 @@ def eval(args: EvalConfig):
 #     "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_658/combined_model.pth",
 #     "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_387/combined_model.pth",
 #     "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_266/combined_model.pth"
+##for ablation with and without detach
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_283/combined_model_laststep.pth",#this is without detach. dont care about the below
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_283/combined_model_laststep.pth",
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_283/combined_model_laststep.pth",
+    # ##ccbf
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_860/combined_model_laststep.pth",#p=10, big model
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_860/combined_model_laststep.pth",
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_860/combined_model_laststep.pth",
+    #   #CBF
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_445/combined_model.pth",#dont care
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_445/combined_model.pth",
+    "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/OfflineHopperVelocityGymnasium-v1_445/combined_model.pth",  
 ]
     for i, model_path in enumerate(model_paths):
         cfg, model = load_config_and_model(args.path, args.best)
@@ -410,3 +422,37 @@ None:#none means just set the use cbf param to false and check the policy withou
   Avg Normalized Cost: 0.0133, std: 0.0051
   Avg Length: 271.6833, std: 10.2803
   '''
+  
+  
+  
+  #beststep new L_unsafe instead of L_c
+#   Group idbf (Models 1-3):
+#   Avg Normalized Reward: 0.1764, std: 0.0043
+#   Avg Normalized Cost: 0.0067, std: 0.0062
+#   Avg Length: 264.0167, std: 6.0286
+
+# Group ccbf (Models 4-6):
+#   Avg Normalized Reward: 0.1905, std: 0.0026
+#   Avg Normalized Cost: 0.3083, std: 0.2127
+#   Avg Length: 278.3167, std: 1.3456
+
+# Group cbf (Models 7-9):
+#   Avg Normalized Reward: 0.1815, std: 0.0035
+#   Avg Normalized Cost: 0.0067, std: 0.0077
+#   Avg Length: 272.0000, std: 5.6570
+
+  # last checkpoint new L_unsafe instead of L_c 
+# Group idbf (Models 1-3):
+#   Avg Normalized Reward: 0.1755, std: 0.0088
+#   Avg Normalized Cost: 0.0767, std: 0.0304
+#   Avg Length: 263.0667, std: 11.4691
+
+# Group ccbf (Models 4-6):
+#   Avg Normalized Reward: 0.1793, std: 0.0088
+#   Avg Normalized Cost: 0.1567, std: 0.0493
+#   Avg Length: 264.6333, std: 11.0903
+
+# Group cbf (Models 7-9):
+#   Avg Normalized Reward: 0.1861, std: 0.0050
+#   Avg Normalized Cost: 0.0067, std: 0.0062
+#   Avg Length: 278.9500, std: 6.6016

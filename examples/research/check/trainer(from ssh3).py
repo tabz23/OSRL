@@ -7,7 +7,7 @@ from typing import Any
 import json
 import random
 
-sys.path.append("/Users/i.k.tabbara/Documents/python directory/OSRL")
+sys.path.append("/storage1/sibai/Active/ihab/research/OSRL")
 
 import bullet_safety_gym  # noqa
 import dsrl
@@ -286,6 +286,7 @@ loss_grad_vector.shape torch.Size([128, 1])
         for step in range(self.eval_steps):
             batch = next(valloader_iter)
             observations, next_observations, actions, _, costs, done = [b.to(torch.float32).to(self.device) for b in batch]
+            debug_results = self.debug_action_coherence([observations, next_observations, actions, _, costs, done])#added this now for debugging
             
             if self.train_dynamics:
                 loss_safe, loss_unsafe, loss_grad,loss_cql, dynamics_loss, avg_safe_B, avg_unsafe_B, safe_acc, unsafe_acc, avg_random_cbf = self.compute_loss(  #i added this - added avg_random_cbf
@@ -324,18 +325,31 @@ loss_grad_vector.shape torch.Size([128, 1])
         avg_unsafe_acc = total_unsafe_acc / self.eval_steps
 
         # Log validation metrics
+        # log_dict = {
+        #     "val_loss_safe": avg_loss_safe,
+        #     "val_loss_unsafe": avg_loss_unsafe,
+        #     "val_loss_grad": avg_loss_grad,
+        #     "val_loss_cql": avg_loss_cql,
+        #     "val_cbf_loss": total_cbf_loss,
+        #     "val_avg_safe_B": avg_safe_B,
+        #     "val_avg_unsafe_B": avg_unsafe_B,
+        #     "val_safe_acc": avg_safe_acc,
+        #     "val_unsafe_acc": avg_unsafe_acc,
+        #     "val_total_loss": total_loss,
+        #     "val_avg_random_cbf": avg_random_cbf  #i added this
+        # }
         log_dict = {
-            "val_loss_safe": avg_loss_safe,
-            "val_loss_unsafe": avg_loss_unsafe,
-            "val_loss_grad": avg_loss_grad,
-            "val_loss_cql": avg_loss_cql,
-            "val_cbf_loss": total_cbf_loss,
-            "val_avg_safe_B": avg_safe_B,
-            "val_avg_unsafe_B": avg_unsafe_B,
-            "val_safe_acc": avg_safe_acc,
-            "val_unsafe_acc": avg_unsafe_acc,
-            "val_total_loss": total_loss,
-            "val_avg_random_cbf": avg_random_cbf  #i added this
+            "test_loss_safe": avg_loss_safe,
+            "test_loss_unsafe": avg_loss_unsafe,
+            "test_loss_grad": avg_loss_grad,
+            "test_loss_cql": avg_loss_cql,
+            "test_cbf_loss": total_cbf_loss,
+            "test_avg_safe_B": avg_safe_B,
+            "test_avg_unsafe_B": avg_unsafe_B,
+            "test_safe_acc": avg_safe_acc,
+            "test_unsafe_acc": avg_unsafe_acc,
+            "test_total_loss": total_loss,
+            "test_avg_random_cbf": avg_random_cbf  #i added this
         }
         
         if self.train_dynamics:
@@ -366,7 +380,7 @@ loss_grad_vector.shape torch.Size([128, 1])
         lowest_eval_loss = float("inf")
         
         # Setup model save path
-        base_path = f"/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/{self.args.task}_{self.random_value}"
+        base_path = f"/storage1/sibai/Active/ihab/research/OSRL/examples/research/models/{self.args.task}_{self.random_value}"
         os.makedirs(base_path, exist_ok=True)
 
         print("\nStarting training combined CBF and dynamics...")
@@ -510,6 +524,52 @@ loss_grad_vector.shape torch.Size([128, 1])
         self.model.load_state_dict(torch.load(model_path, map_location=self.device))
         return self.model
     
+    def debug_action_coherence(self, test_batch):
+        """
+        Test if CBF distinguishes between coherent vs random action patterns
+        """
+        observations, next_observations, actions, _, costs, done = test_batch
+        safe_mask = (costs <= 0).reshape(-1, 1)
+        observations_safe = observations[safe_mask.reshape(-1,)]
+        dataset_actions = actions[safe_mask.reshape(-1,)]
+        
+        # 1. Dataset actions (coherent, goal-directed)
+        dataset_next_states = self.compute_next_states(observations_safe, dataset_actions)
+        cbf_dataset_actions = self.model.forward_cbf(dataset_next_states)
+        
+        # 2. Smoothed random actions (partially coherent)
+        alpha = 0.7  # Mix with dataset actions
+        partial_random = alpha * dataset_actions + (1-alpha) * self.sample_random_actions(observations_safe.shape[0])
+        partial_next_states = self.compute_next_states(observations_safe, partial_random)
+        cbf_partial_random = self.model.forward_cbf(partial_next_states)
+        
+        # 3. Pure random actions (chaotic)
+        pure_random = self.sample_random_actions(observations_safe.shape[0])
+        pure_random_states = self.compute_next_states(observations_safe, pure_random)
+        cbf_pure_random = self.model.forward_cbf(pure_random_states)
+        
+        # 4. Reversed actions (anti-coherent)
+        reversed_actions = -dataset_actions  # Opposite direction
+        reversed_next_states = self.compute_next_states(observations_safe, reversed_actions)
+        cbf_reversed = self.model.forward_cbf(reversed_next_states)
+        
+        results = {
+            "cbf_dataset": torch.mean(cbf_dataset_actions).item(),
+            "cbf_partial_random": torch.mean(cbf_partial_random).item(),
+            "cbf_pure_random": torch.mean(cbf_pure_random).item(),
+            "cbf_reversed": torch.mean(cbf_reversed).item()
+        }
+        
+        wandb.log({
+            "coherence_dataset": results["cbf_dataset"],
+            "coherence_partial": results["cbf_partial_random"],
+            "coherence_random": results["cbf_pure_random"],
+            "coherence_reversed": results["cbf_reversed"]
+        })
+        
+        print(f"Action Coherence: Dataset={results['cbf_dataset']:.4f} > Partial={results['cbf_partial_random']:.4f} > Random={results['cbf_pure_random']:.4f}, Reversed={results['cbf_reversed']:.4f}")
+        
+        return results
     
 @pyrallis.wrap()
 def main(args: BCTrainConfig):
@@ -536,10 +596,18 @@ def main(args: BCTrainConfig):
     args.num_action = env.action_space.shape[0]
     args.state_dim = env.observation_space.shape[0]
     
-    # Create data loaders
-    trainloader = DataLoader(TransitionDataset(data, split='train'), batch_size=args.batch_size, pin_memory=True, num_workers=args.num_workers)
-    valloader = DataLoader(TransitionDataset(data, split='val'), batch_size=args.batch_size, pin_memory=True, num_workers=args.num_workers)
-    
+    # # For transition-level split (original behavior):
+    # trainloader = DataLoader(TransitionDataset(data, split='train', trajectory_split=False), 
+    #                         batch_size=args.batch_size, pin_memory=True, num_workers=args.num_workers)
+    # valloader = DataLoader(TransitionDataset(data, split='val', trajectory_split=False), 
+    #                     batch_size=args.batch_size, pin_memory=True, num_workers=args.num_workers)nsitionDataset(data, split='val'), batch_size=args.batch_size, pin_memory=True, num_workers=args.num_workers)
+        
+        # For trajectory-level split (completely separate trajectories):
+    trainloader = DataLoader(TransitionDataset(data, split='train', trajectory_split=True), 
+                            batch_size=args.batch_size, pin_memory=True, num_workers=args.num_workers)
+    valloader = DataLoader(TransitionDataset(data, split='val', trajectory_split=True), 
+                        batch_size=args.batch_size, pin_memory=True, num_workers=args.num_workers)
+
     # Create the combined model
     combined_model = CombinedCBFDynamics(
         num_action=args.num_action,
@@ -603,7 +671,7 @@ def main(args: BCTrainConfig):
     standalone_dynamics = combined_model.get_dynamics_model()
     
     # Save individual models if needed
-    base_path = "/Users/i.k.tabbara/Documents/python directory/OSRL/examples/research/models/"
+    base_path = "/storage1/sibai/Active/ihab/research/OSRL/examples/research/models/"
     torch.save(standalone_cbf.state_dict(), f"{base_path}extracted_cbf_model_task{args.task}_seed{args.seed}.pth")
     torch.save(standalone_dynamics.state_dict(), f"{base_path}extracted_dynamics_model_task{args.task}_seed{args.seed}.pth")
     
@@ -666,28 +734,25 @@ And/or make the logsumexp_h term smaller (which means making the CBF values of r
         loss_cql_actions = self.w_CQL * torch.mean(cql_actions_term)
         return loss_cql_actions
     """
-#for swimmer
+    
 # python examples/research/check/trainer.py --task OfflineSwimmerVelocityGymnasium-v1  --cql 0 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --w_grad 2 --train_steps 15000
 # python examples/research/check/trainer.py --task OfflineSwimmerVelocityGymnasium-v1  --cql 0.5 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --w_grad 2 --train_steps 15000
 # python examples/research/check/trainer.py --task OfflineSwimmerVelocityGymnasium-v1  --cql 1 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --w_grad 2 --train_steps 15000
 
-#for hopper
-# python  examples/research/check/trainer.py --task OfflineHopperVelocityGymnasium-v1  --cql 0 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --train_steps 50000 --w_grad 2
-# python  examples/research/check/trainer.py --task OfflineHopperVelocityGymnasium-v1  --cql 0.5 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --train_steps 50000 --w_grad 2
-# python  examples/research/check/trainer.py --task OfflineHopperVelocityGymnasium-v1  --cql 1 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --train_steps 50000 --w_grad 2
+##do it again with temp=0.7
 
 
 
 
-# The CBF successfully learns generalizable conservative safety principles rather than merely memorizing training data. During training,
-# it learns that states with certain safety features should have positive CBF values, while random actions from these states typically lead
-# to riskier outcomes. This learned bias transfers to validation: when encountering unseen safe states, the CBF correctly recognizes their 
-# safety patterns and assigns high values, but simultaneously applies the learned rule that "random actions from safe states are risky," 
-# resulting in lower CBF values for randomly-reached states. The fact that this avg_safe_h > avg_random_h pattern emerges on completely unseen 
-# validation data confirms the CBF has internalized meaningful safety structure. As CQL weight increases, this conservative bias strengthens -
-# at w_CQL=0.5, out-of-distribution states are deemed "less safe" than in-distribution safe states, while at w_CQL=1.0, they may be labeled as 
-# outright unsafe. This demonstrates that CQL teaches the CBF that deviating from the dataset distribution (via random actions) inherently increases 
-# risk, a principle that generalizes robustly to new scenarios.
+# Training: Safe states → CBF learns "states like this are safe" 
+#                     → "random actions from safe states are risky"
+
+# Validation: New safe states → CBF recognizes "this looks like a safe state"
+#                            → Applies learned rule: "random actions are risky"
+                           
+# CBF is successfully learning that "random actions from safe states tend to be risky" 
+
+##confirming hypothesis we had in the 2d single integrator case, as w increase and at 1 specifically, we started labeling safe OOD states as unsafe, but when wc=0.5 they are simply less safe than the IND safe states but not seen as unsafe.
 
 #note that at first both safe and ranomly reached states have similar B, but as training progresses the OOD safe states are seen as less safe
 #since L_safe only pushes up the safe states that are IND whereas the OOD reached safe states are not pushed up.
@@ -695,3 +760,6 @@ And/or make the logsumexp_h term smaller (which means making the CBF values of r
 
 
 
+
+#hopper
+#python "/storage1/sibai/Active/ihab/research/OSRL/examples/research/check/trainer.py" --task OfflineHopperVelocityGymnasium-v1  --cql 0 --temp 1 --detach True --batch_size 256 --device="mps" --num_action_samples_cql 10 --seed 7 --train_steps 50000 --w_grad 2

@@ -66,6 +66,7 @@ class BCTrainConfig:
     w_grad: float = 1.0  # you can change to 2 for swimmer and 1 for hopper
     lambda_lip: float = 1.0
     train_steps: int = 15000 #default for swimmer
+    loss_random_unsafe: bool = False
     
 
 
